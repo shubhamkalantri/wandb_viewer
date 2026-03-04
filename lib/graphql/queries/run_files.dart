@@ -6,7 +6,8 @@ query RunFiles($project: String!, $entity: String!, $runName: String!, $first: I
         edges {
           node {
             name
-            url
+            directUrl
+            url(upload: false)
             sizeBytes
             updatedAt
           }

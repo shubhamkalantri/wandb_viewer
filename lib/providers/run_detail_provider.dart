@@ -29,6 +29,30 @@ class RunDetailParams {
   int get hashCode => Object.hash(entity, project, runName);
 }
 
+class MetricHistoryParams {
+  final RunDetailParams params;
+  final List<String> keys;
+
+  const MetricHistoryParams({required this.params, required this.keys});
+
+  @override
+  bool operator ==(Object other) =>
+      other is MetricHistoryParams &&
+      other.params == params &&
+      other.keys.length == keys.length &&
+      _listEquals(other.keys, keys);
+
+  @override
+  int get hashCode => Object.hash(params, Object.hashAll(keys));
+
+  static bool _listEquals(List<String> a, List<String> b) {
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+    return true;
+  }
+}
+
 final runDetailProvider = AsyncNotifierProvider.family<RunDetailNotifier, Run,
     RunDetailParams>(RunDetailNotifier.new);
 
@@ -64,7 +88,7 @@ class RunDetailNotifier extends FamilyAsyncNotifier<Run, RunDetailParams> {
 }
 
 final runMetricsProvider = FutureProvider.family<List<MetricHistory>,
-    ({RunDetailParams params, List<String> keys})>((ref, args) async {
+    MetricHistoryParams>((ref, args) async {
   final client = await ref.read(authenticatedClientProvider.future);
   if (client == null) throw Exception('Not authenticated');
   return RunRepository(client).getMetricHistory(

@@ -1,4 +1,5 @@
 import 'package:graphql_flutter/graphql_flutter.dart';
+import '../core/graphql_exception.dart';
 import '../graphql/queries/viewer.dart';
 import '../models/user.dart';
 
@@ -12,9 +13,7 @@ class AuthRepository {
       QueryOptions(document: gql(viewerQuery)),
     );
 
-    if (result.hasException) {
-      throw result.exception!;
-    }
+    throwIfException(result);
 
     return User.fromGraphQL(result.data!['viewer'] as Map<String, dynamic>);
   }

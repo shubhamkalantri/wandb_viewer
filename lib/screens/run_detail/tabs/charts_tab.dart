@@ -43,10 +43,11 @@ class _ChartsTabState extends ConsumerState<ChartsTab> {
       return const Center(child: Text('Select metrics to chart'));
     }
 
-    final metricsAsync = ref.watch(runMetricsProvider((
+    final metricParams = MetricHistoryParams(
       params: widget.params,
       keys: _selectedKeys.toList(),
-    )));
+    );
+    final metricsAsync = ref.watch(runMetricsProvider(metricParams));
 
     return Column(
       children: [
@@ -84,11 +85,8 @@ class _ChartsTabState extends ConsumerState<ChartsTab> {
           child: metricsAsync.when(
             loading: () => const LoadingIndicator(message: 'Loading metrics...'),
             error: (e, _) => ErrorView(
-              message: 'Failed to load metrics. Check your connection and try again.',
-              onRetry: () => ref.invalidate(runMetricsProvider((
-                params: widget.params,
-                keys: _selectedKeys.toList(),
-              ))),
+              message: 'Failed to load metrics: $e',
+              onRetry: () => ref.invalidate(runMetricsProvider(metricParams)),
             ),
             data: (metrics) => Padding(
               padding: const EdgeInsets.all(8),

@@ -72,7 +72,7 @@ class MediaTab extends ConsumerWidget {
     return mediaAsync.when(
       loading: () => const LoadingIndicator(message: 'Loading media...'),
       error: (e, _) => ErrorView(
-        message: 'Failed to load media. Check your connection and try again.',
+        message: 'Failed to load media: $e',
         onRetry: () => ref.invalidate(runMediaProvider(params)),
       ),
       data: (items) {

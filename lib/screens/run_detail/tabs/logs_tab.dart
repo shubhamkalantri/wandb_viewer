@@ -61,7 +61,7 @@ class _LogsTabState extends ConsumerState<LogsTab> {
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = 'Failed to load logs. Check your connection and try again.';
+          _error = 'Failed to load logs: $e';
           _loading = false;
         });
       }

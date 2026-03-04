@@ -1,5 +1,6 @@
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../core/constants.dart';
+import '../core/graphql_exception.dart';
 import '../graphql/queries/sweeps.dart';
 import '../models/sweep.dart';
 import 'project_repository.dart';
@@ -23,10 +24,10 @@ class SweepRepository {
         'first': first,
         if (cursor != null) 'cursor': cursor,
       },
-      fetchPolicy: FetchPolicy.networkOnly,
+      fetchPolicy: FetchPolicy.noCache,
     ));
 
-    if (result.hasException) throw result.exception!;
+    throwIfException(result);
 
     final projectData = result.data!['project'] as Map<String, dynamic>;
     final sweeps = projectData['sweeps'] as Map<String, dynamic>;

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../core/constants.dart';
+import '../core/graphql_exception.dart';
 import '../graphql/queries/runs.dart';
 import '../graphql/queries/run_detail.dart';
 import '../graphql/queries/run_history.dart';
@@ -41,10 +42,10 @@ class RunRepository {
         if (filters != null) 'filters': json.encode(filters),
         if (order != null) 'order': order,
       },
-      fetchPolicy: FetchPolicy.networkOnly,
+      fetchPolicy: FetchPolicy.noCache,
     ));
 
-    if (result.hasException) throw result.exception!;
+    throwIfException(result);
 
     final projectData = result.data!['project'] as Map<String, dynamic>;
     final runs = projectData['runs'] as Map<String, dynamic>;
@@ -69,10 +70,10 @@ class RunRepository {
         'project': project,
         'runName': runName,
       },
-      fetchPolicy: FetchPolicy.networkOnly,
+      fetchPolicy: FetchPolicy.noCache,
     ));
 
-    if (result.hasException) throw result.exception!;
+    throwIfException(result);
 
     final projectData = result.data!['project'] as Map<String, dynamic>;
     return Run.fromGraphQL(projectData['run'] as Map<String, dynamic>);
@@ -85,30 +86,45 @@ class RunRepository {
     List<String> metricKeys, {
     int samples = AppConstants.defaultHistorySamples,
   }) async {
-    final query = runHistoryQuery(metricKeys, samples);
+    // W&B API expects specs as JSON-encoded strings (JSONString type)
+    final specs = metricKeys
+        .map((k) => json.encode({'keys': [k], 'samples': samples}))
+        .toList();
     final result = await _client.query(QueryOptions(
-      document: gql(query),
+      document: gql(runHistoryQuery),
       variables: {
         'entity': entity,
         'project': project,
         'runName': runName,
+        'specs': specs,
       },
-      fetchPolicy: FetchPolicy.networkOnly,
+      fetchPolicy: FetchPolicy.noCache,
     ));
 
-    if (result.hasException) throw result.exception!;
+    throwIfException(result);
 
-    final projectData = result.data!['project'] as Map<String, dynamic>;
-    final run = projectData['run'] as Map<String, dynamic>;
-    final sampledHistory = run['sampledHistory'] as List;
+    final projectData = result.data?['project'] as Map<String, dynamic>?;
+    final run = projectData?['run'] as Map<String, dynamic>?;
+    final sampledHistory = run?['sampledHistory'] as List? ?? [];
 
     // sampledHistory returns an array of arrays, one per spec
+    // Each row may be a Map (pre-parsed JSON) or a String (JSON-encoded)
     return List.generate(metricKeys.length, (i) {
       if (i >= sampledHistory.length) {
         return MetricHistory(key: metricKeys[i], points: []);
       }
-      final rows = (sampledHistory[i] as List)
-          .cast<Map<String, dynamic>>();
+      final rawRows = sampledHistory[i] as List? ?? [];
+      final rows = rawRows.map((row) {
+        if (row is Map<String, dynamic>) return row;
+        if (row is String) {
+          try {
+            return json.decode(row) as Map<String, dynamic>;
+          } catch (_) {
+            return <String, dynamic>{};
+          }
+        }
+        return <String, dynamic>{};
+      }).toList();
       return MetricHistory.fromSampledHistory(metricKeys[i], rows);
     });
   }
@@ -127,14 +143,14 @@ class RunRepository {
         'runName': runName,
         'samples': samples,
       },
-      fetchPolicy: FetchPolicy.networkOnly,
+      fetchPolicy: FetchPolicy.noCache,
     ));
 
-    if (result.hasException) throw result.exception!;
+    throwIfException(result);
 
-    final projectData = result.data!['project'] as Map<String, dynamic>;
-    final run = projectData['run'] as Map<String, dynamic>;
-    final events = run['events'] as List;
+    final projectData = result.data?['project'] as Map<String, dynamic>?;
+    final run = projectData?['run'] as Map<String, dynamic>?;
+    final events = run?['events'] as List? ?? [];
     return SystemMetrics.fromEvents(events);
   }
 
@@ -152,20 +168,22 @@ class RunRepository {
         'runName': runName,
         'first': first,
       },
-      fetchPolicy: FetchPolicy.networkOnly,
+      fetchPolicy: FetchPolicy.noCache,
     ));
 
-    if (result.hasException) throw result.exception!;
+    throwIfException(result);
 
-    final projectData = result.data!['project'] as Map<String, dynamic>;
-    final run = projectData['run'] as Map<String, dynamic>;
-    final edges = (run['files'] as Map<String, dynamic>)['edges'] as List;
+    final projectData = result.data?['project'] as Map<String, dynamic>?;
+    final run = projectData?['run'] as Map<String, dynamic>?;
+    final filesMap = run?['files'] as Map<String, dynamic>?;
+    final edges = filesMap?['edges'] as List? ?? [];
 
     return edges.map((e) {
       final node = e['node'] as Map<String, dynamic>;
+      final url = (node['directUrl'] ?? node['url'] ?? '') as String;
       return RunFile(
-        name: node['name'] as String,
-        url: node['url'] as String,
+        name: node['name'] as String? ?? '',
+        url: url,
         sizeBytes: node['sizeBytes'] as int?,
       );
     }).toList();

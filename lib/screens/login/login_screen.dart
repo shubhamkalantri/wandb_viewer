@@ -32,6 +32,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
     try {
       await ref.read(authStateProvider.notifier).login(apiKey);
+      // Clear key from controller memory after successful login.
+      _controller.clear();
       // Navigation is handled by the router's refreshListenable redirect.
     } catch (e) {
       if (mounted) {

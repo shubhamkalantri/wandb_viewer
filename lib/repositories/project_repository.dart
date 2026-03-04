@@ -1,5 +1,6 @@
 import 'package:graphql_flutter/graphql_flutter.dart';
 import '../core/constants.dart';
+import '../core/graphql_exception.dart';
 import '../graphql/queries/projects.dart';
 import '../models/project.dart';
 
@@ -32,10 +33,10 @@ class ProjectRepository {
         'first': first,
         if (cursor != null) 'cursor': cursor,
       },
-      fetchPolicy: FetchPolicy.networkOnly,
+      fetchPolicy: FetchPolicy.noCache,
     ));
 
-    if (result.hasException) throw result.exception!;
+    throwIfException(result);
 
     final models = result.data!['models'] as Map<String, dynamic>;
     final edges = models['edges'] as List;

@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class SystemMetricPoint {
   final double timestamp;
   final Map<String, double> values;
@@ -16,12 +18,24 @@ class SystemMetrics {
     final keys = <String>{};
 
     for (final event in events) {
-      if (event is! Map<String, dynamic>) continue;
-      final ts = (event['_timestamp'] as num?)?.toDouble();
+      // W&B API may return events as JSON strings or pre-parsed Maps
+      Map<String, dynamic>? eventMap;
+      if (event is Map<String, dynamic>) {
+        eventMap = event;
+      } else if (event is String) {
+        try {
+          eventMap = json.decode(event) as Map<String, dynamic>;
+        } catch (_) {
+          continue;
+        }
+      }
+      if (eventMap == null) continue;
+
+      final ts = (eventMap['_timestamp'] as num?)?.toDouble();
       if (ts == null) continue;
 
       final values = <String, double>{};
-      event.forEach((k, v) {
+      eventMap.forEach((k, v) {
         if (k.startsWith('system.') && v is num) {
           values[k] = v.toDouble();
           keys.add(k);

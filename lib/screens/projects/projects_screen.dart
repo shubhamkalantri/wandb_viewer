@@ -27,7 +27,8 @@ class ProjectsScreen extends ConsumerWidget {
           return const SizedBox.shrink();
         }
 
-        final entities = [user.username, ...user.teams];
+        // W&B lists the user's personal entity as a team too — deduplicate
+        final entities = [user.username, ...user.teams.where((t) => t != user.username)];
         return DefaultTabController(
           length: entities.length,
           child: Scaffold(

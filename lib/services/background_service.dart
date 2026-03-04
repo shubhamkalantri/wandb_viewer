@@ -32,7 +32,8 @@ void callbackDispatcher() {
 
       // Query active runs
       final httpLink = HttpLink(AppConstants.wandbGraphqlUrl);
-      final authLink = AuthLink(getToken: () => 'Bearer $apiKey');
+      final credentials = base64Encode(utf8.encode('api:$apiKey'));
+      final authLink = AuthLink(getToken: () => 'Basic $credentials');
       final client = GraphQLClient(
         link: authLink.concat(httpLink),
         cache: GraphQLCache(),
@@ -46,7 +47,7 @@ void callbackDispatcher() {
           'first': 50,
           'order': '-createdAt',
         },
-        fetchPolicy: FetchPolicy.networkOnly,
+        fetchPolicy: FetchPolicy.noCache,
       ));
 
       if (result.hasException) return true;

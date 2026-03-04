@@ -17,7 +17,7 @@ class SystemTab extends ConsumerWidget {
     return metricsAsync.when(
       loading: () => const LoadingIndicator(message: 'Loading system metrics...'),
       error: (e, _) => ErrorView(
-        message: 'Failed to load system metrics. Check your connection and try again.',
+        message: 'Failed to load system metrics: $e',
         onRetry: () => ref.invalidate(runSystemMetricsProvider(params)),
       ),
       data: (metrics) {

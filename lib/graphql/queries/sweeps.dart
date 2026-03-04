@@ -8,7 +8,6 @@ query Sweeps($project: String!, $entity: String!, $first: Int!, $cursor: String)
           name
           state
           runCount
-          bestLoss
           config
           createdAt
           updatedAt
